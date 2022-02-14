@@ -11,7 +11,7 @@ Button 1 - Volume down
 
 Button 2 - Volume up
 
-Button 3 - Play/pause
+Button 3 - Send a keyboard key (starting with 'a', incrementing through the alphabet for each press)
 
 Button 4 - Shift + Ctrl + m (shortcut for muting microphone in Teams)
 

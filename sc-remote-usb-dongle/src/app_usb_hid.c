@@ -39,7 +39,6 @@ enum {KEY_A=0x4, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J, 
 
 static bool configured;
 static const struct device *hdev;
-static struct k_work report_send;
 static ATOMIC_DEFINE(hid_ep_in_busy, 1);
 
 #define HID_EP_BUSY_FLAG		0
@@ -68,9 +67,6 @@ struct report {
 	.data.kbd.flags = 0,
 	.data.kbd.keys = {KEY_A, 0, 0, 0, 0, 0},
 };
-
-static void report_event_handler(struct k_timer *dummy);
-static K_TIMER_DEFINE(event_timer, report_event_handler, NULL);
 
 static const uint8_t hid_report_desc[] = {
 		0x05, 0x01,       /* Usage Page (Generic Desktop) */
@@ -170,14 +166,6 @@ static void int_in_ready_cb(const struct device *dev)
 static void on_idle_cb(const struct device *dev, uint16_t report_id)
 {
 	LOG_DBG("On idle callback");
-	k_work_submit(&report_send);
-}
-
-static void report_event_handler(struct k_timer *dummy)
-{
-	/* Increment reported data */
-	report_1.data.kbd.keys[0]++;
-	k_work_submit(&report_send);
 }
 
 static void protocol_cb(const struct device *dev, uint8_t protocol)
@@ -212,6 +200,19 @@ static void status_cb(enum usb_dc_status_code status, const uint8_t *param)
 	}
 }
 
+// HID TX thread function. Used to send HID packets over USB. 
+void usb_hid_tx_func(void)
+{
+	while(1) {
+		// Similar to the original HID sample, send a packet every 2 seconds, and increment the key
+		if(configured) {
+			send_report(0);
+			report_1.data.kbd.keys[0]++;
+		}
+		k_msleep(2000);
+	}
+}
+
 int app_usb_hid_init(void)
 {
 	int ret;
@@ -223,8 +224,6 @@ int app_usb_hid_init(void)
 		LOG_ERR("Failed to enable USB");
 		return ret;
 	}
-
-	k_work_init(&report_send, send_report);
 
 	return 0;
 }
@@ -243,7 +242,6 @@ static int composite_pre_init(const struct device *dev)
 				&ops);
 
 	atomic_set_bit(hid_ep_in_busy, HID_EP_BUSY_FLAG);
-	k_timer_start(&event_timer, REPORT_PERIOD, REPORT_PERIOD);
 
 	if (usb_hid_set_proto_code(hdev, HID_BOOT_IFACE_CODE_NONE)) {
 		LOG_WRN("Failed to set Protocol Code");
@@ -251,5 +249,8 @@ static int composite_pre_init(const struct device *dev)
 
 	return usb_hid_init(hdev);
 }
+
+// Create a thread for sending HID messages to the USB stack. 
+K_THREAD_DEFINE(m_thread_usb_hid_tx, 1024, usb_hid_tx_func, NULL, NULL, NULL, 5, 0, 0);
 
 SYS_INIT(composite_pre_init, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEVICE);

@@ -8,6 +8,7 @@
 #include <zephyr.h>
 
 #include "app_usb_hid.h"
+#include "app_ble_nus_c_handler.h"
 #include "dk_buttons_and_leds.h"
 
 #include <logging/log.h>
@@ -44,6 +45,11 @@ static void app_button_handler(uint32_t button_state, uint32_t has_changed)
 	}
 }
 
+void on_nus_client_data_received(uint8_t *data_ptr, uint32_t length)
+{
+
+}
+
 void main(void)
 {
 	int ret;
@@ -58,5 +64,11 @@ void main(void)
 	ret = app_usb_hid_init();
 	if(ret != 0) {
 		LOG_ERR("Unable to initialize USB HID: %d", ret);
+	}
+
+	app_ble_nus_c_config_t nus_c_config = {.on_data_received = on_nus_client_data_received};
+	ret = app_ble_nus_c_init(&nus_c_config);
+	if(ret != 0) {
+		LOG_ERR("Unable to initialize BLE Nus client!");
 	}
 }

@@ -24,4 +24,13 @@ void main(void)
 	if(ret != 0) {
 		LOG_ERR("Unable to initialize USB HID: %d", ret);
 	}
+
+	while(1) {
+		static uint8_t my_key = KEY_A;
+		ret = app_usb_hid_send_kbd_packet(my_key++, 0);
+		if(ret != 0) {
+			LOG_ERR("Unable to send HID keyboard packet");
+		}
+		k_msleep(2000);
+	}
 }

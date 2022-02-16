@@ -76,7 +76,7 @@ static const struct bt_data ad[] = {
 };
 
 static const struct bt_data sd[] = {
-	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_NUS_VAL),
+	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_128_ENCODE(0x988f9c8d, 0x2b03, 0x489f, 0xa102, 0x4d83463b90f3)),
 };
 
 #if CONFIG_BT_NUS_UART_ASYNC_ADAPTER

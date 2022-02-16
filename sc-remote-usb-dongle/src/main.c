@@ -47,7 +47,50 @@ static void app_button_handler(uint32_t button_state, uint32_t has_changed)
 
 void on_nus_client_data_received(uint8_t *data_ptr, uint32_t length)
 {
-	LOG_INF("Data received: Length %i: %x %x", length, data_ptr[0], data_ptr[1]);
+	// If the length is 2, process incoming packets here, and forward them to the USB HID interface 
+	if(length == 2) {
+		uint8_t button_number = data_ptr[0];
+		bool button_pressed = (data_ptr[1] == '1');
+		switch(button_number) {
+			case '0':
+				// Volume up
+				if(button_pressed) {
+					app_usb_hid_send_cons_ctrl_packet(BIT(0));
+				}
+				break;
+
+			case '1':
+				// Volume down
+				if(button_pressed) {
+					app_usb_hid_send_cons_ctrl_packet(BIT(1));
+				}
+				break;
+
+			case '2':
+				// Send incrementing character (a-z) on press, empty packet on release
+				if(button_pressed) {
+					static uint8_t key = KEY_A;
+					app_usb_hid_send_kbd_packet(key++, 0);
+					if(key > KEY_Z) key = KEY_A;					
+				} else {
+					app_usb_hid_send_kbd_packet(0, 0);
+				}
+				break;
+
+			case '3':
+				// Send CTRL + SHIFT + M on press, empty packet on release
+				if(button_pressed) {
+					app_usb_hid_send_kbd_packet(KEY_M, HID_KBD_REP_FLAG_LEFT_CTRL | HID_KBD_REP_FLAG_LEFT_SHIFT);
+				} else {
+					app_usb_hid_send_kbd_packet(0, 0);
+				}
+				break;
+
+			default:
+				LOG_ERR("Invalid button number received");
+				break;
+		}
+	}
 }
 
 void main(void)

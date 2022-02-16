@@ -47,7 +47,7 @@ static void app_button_handler(uint32_t button_state, uint32_t has_changed)
 
 void on_nus_client_data_received(uint8_t *data_ptr, uint32_t length)
 {
-
+	LOG_INF("Data received: Length %i: %x %x", length, data_ptr[0], data_ptr[1]);
 }
 
 void main(void)

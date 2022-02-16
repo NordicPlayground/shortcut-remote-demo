@@ -48,6 +48,8 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 static struct bt_conn *default_conn;
 static struct bt_nus_client nus_client;
 
+static app_ble_nus_c_data_received_t m_data_received_callback;
+
 static void ble_data_sent(struct bt_nus_client *nus, uint8_t err,
 					const uint8_t *const data, uint16_t len)
 {
@@ -57,6 +59,9 @@ static void ble_data_sent(struct bt_nus_client *nus, uint8_t err,
 static uint8_t ble_data_received(struct bt_nus_client *nus,
 						const uint8_t *data, uint16_t len)
 {
+	if(m_data_received_callback) {
+		m_data_received_callback(data, len);
+	}
 	return BT_GATT_ITER_CONTINUE;
 }
 
@@ -329,6 +334,8 @@ static struct bt_conn_auth_cb conn_auth_callbacks = {
 int app_ble_nus_c_init(app_ble_nus_c_config_t *config)
 {
 	int err;
+
+	m_data_received_callback = config->on_data_received;
 
 	err = bt_conn_auth_cb_register(&conn_auth_callbacks);
 	if (err) {

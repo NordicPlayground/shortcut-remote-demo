@@ -237,6 +237,14 @@ static void num_comp_reply(bool accept)
 	auth_conn = NULL;
 }
 
+#define DK_BUTTON1 0
+#define DK_BUTTON2 1
+#define DK_BUTTON3 2
+#define DK_BUTTON4 3
+#define BUTTON_CHANGED(a) (has_changed & BIT(a))
+#define BUTTON_PRESSED(a) ((has_changed & BIT(a)) && (button_state & BIT(a)))
+
+static struct uart_data_t button_change_cmd[4];
 void button_changed(uint32_t button_state, uint32_t has_changed)
 {
 	uint32_t buttons = button_state & has_changed;
@@ -249,6 +257,32 @@ void button_changed(uint32_t button_state, uint32_t has_changed)
 		if (buttons & KEY_PASSKEY_REJECT) {
 			num_comp_reply(false);
 		}
+	} 
+	
+	// Forward DK button presses to the BLE NUS service
+	if (BUTTON_CHANGED(DK_BUTTON1)) {
+		button_change_cmd[0].data[0] = '0';
+		button_change_cmd[0].data[1] = BUTTON_PRESSED(DK_BUTTON1) ? '1' : '0';
+		button_change_cmd[0].len = 2;
+		k_fifo_put(&fifo_uart_rx_data, &button_change_cmd[0]);
+	}
+	if (BUTTON_CHANGED(DK_BUTTON2)) {
+		button_change_cmd[1].data[0] = '1';
+		button_change_cmd[1].data[1] = BUTTON_PRESSED(DK_BUTTON2) ? '1' : '0';
+		button_change_cmd[1].len = 2;
+		k_fifo_put(&fifo_uart_rx_data, &button_change_cmd[1]);
+	}
+	if (BUTTON_CHANGED(DK_BUTTON3)) {
+		button_change_cmd[2].data[0] = '2';
+		button_change_cmd[2].data[1] = BUTTON_PRESSED(DK_BUTTON3) ? '1' : '0';
+		button_change_cmd[2].len = 2;
+		k_fifo_put(&fifo_uart_rx_data, &button_change_cmd[2]);
+	}
+	if (BUTTON_CHANGED(DK_BUTTON4)) {
+		button_change_cmd[3].data[0] = '3';
+		button_change_cmd[3].data[1] = BUTTON_PRESSED(DK_BUTTON4) ? '1' : '0';
+		button_change_cmd[3].len = 2;
+		k_fifo_put(&fifo_uart_rx_data, &button_change_cmd[3]);
 	}
 }
 #endif /* CONFIG_BT_NUS_SECURITY_ENABLED */
@@ -328,8 +362,6 @@ void ble_write_thread(void)
 		if (bt_nus_send(NULL, buf->data, buf->len)) {
 			LOG_WRN("Failed to send data over BLE connection");
 		}
-
-		k_free(buf);
 	}
 }
 
